@@ -4,6 +4,7 @@ import ecs = require('@aws-cdk/aws-ecs');
 
 export interface ClusterStackProps extends cdk.StackProps {
     cidr: string;
+    maxAZs: number;
 }
 
 export class ClusterStack extends cdk.Stack {
@@ -14,7 +15,7 @@ export class ClusterStack extends cdk.Stack {
         super(scope, id, props);
 
         this.vpc = new ec2.Vpc(this, 'Vpc', {
-            maxAZs: 3,
+            maxAZs: props.maxAZs,
             cidr: props.cidr
         })
 

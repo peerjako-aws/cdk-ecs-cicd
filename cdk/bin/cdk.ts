@@ -8,26 +8,24 @@ import { DevPipelineStack } from '../lib/dev-pipeline-stack';
 
 const app = new cdk.App();
 
-// Cluster Stacks
+// Cluster Stacks - maxAZs of 3 is best practice, but make sure you have no EIP limitations (5 is default)
 const devClusterStack = new ClusterStack(app, 'DevCluster', {
-    cidr: '10.1.0.0/20'
+    cidr: '10.1.0.0/20',
+    maxAZs: 2
 });
 devClusterStack.node.apply(new cdk.Tag('environment', 'dev'));
 
-const qaClusterStack = new ClusterStack(app, 'QACluster', {
-    cidr: '10.2.0.0/20'
-});
-qaClusterStack.node.apply(new cdk.Tag('environment', 'qa'));
-
 const prodClusterStack = new ClusterStack(app, 'ProdCluster', {
-    cidr: '10.3.0.0/20'
+    cidr: '10.3.0.0/20',
+    maxAZs: 2
 });
 prodClusterStack.node.apply(new cdk.Tag('environment', 'prod'));
 
 // CodePipeline stacks
 const devPipelineStack = new DevPipelineStack(app, 'DevPipelineStack');
+devPipelineStack.node.apply(new cdk.Tag('environment', 'dev'));
 
-// App Stacks
+// DevAppStack
 const devAppStack = new AppStack(app, 'DevAppStack', {
     vpc: devClusterStack.vpc,
     cluster: devClusterStack.cluster,
@@ -35,5 +33,24 @@ const devAppStack = new AppStack(app, 'DevAppStack', {
     appImage: devPipelineStack.appBuiltImage,
     nginxImage: devPipelineStack.nginxBuiltImage,
 });
-devAppStack.node.apply(new cdk.Tag('environment', 'prod'));
+devAppStack.node.apply(new cdk.Tag('environment', 'dev'));
 
+// StagingAppStack
+const stagingAppStack = new AppStack(app, 'StagingAppStack', {
+    vpc: prodClusterStack.vpc,
+    cluster: prodClusterStack.cluster,
+    autoDeploy: false,
+    appImage: devPipelineStack.appBuiltImage,
+    nginxImage: devPipelineStack.nginxBuiltImage,
+});
+stagingAppStack.node.apply(new cdk.Tag('environment', 'staging'));
+
+// ProdAppStack
+const prodAppStack = new AppStack(app, 'ProdAppStack', {
+    vpc: prodClusterStack.vpc,
+    cluster: prodClusterStack.cluster,
+    autoDeploy: false,
+    appImage: devPipelineStack.appBuiltImage,
+    nginxImage: devPipelineStack.nginxBuiltImage,
+});
+prodAppStack.node.apply(new cdk.Tag('environment', 'prod'));
