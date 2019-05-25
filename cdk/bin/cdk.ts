@@ -53,12 +53,12 @@ const stagingAppStack = new AppStack(app, 'StagingAppStack', {
 });
 stagingAppStack.node.apply(new cdk.Tag('environment', 'staging'));
 
-// // ProdAppStack
-// const prodAppStack = new AppStack(app, 'ProdAppStack', {
-//     vpc: prodClusterStack.vpc,
-//     cluster: prodClusterStack.cluster,
-//     autoDeploy: false,
-//     appImage: stagingProdPipelineStack.appBuiltImage,
-//     nginxImage: stagingProdPipelineStack.nginxBuiltImage,
-// });
-// prodAppStack.node.apply(new cdk.Tag('environment', 'prod'));
+// ProdAppStack
+const prodAppStack = new AppStack(app, 'ProdAppStack', {
+    vpc: prodClusterStack.vpc,
+    cluster: prodClusterStack.cluster,
+    autoDeploy: false,
+    appImage: stagingProdPipelineStack.appBuiltImage,
+    nginxImage: stagingProdPipelineStack.nginxBuiltImage,
+});
+prodAppStack.node.apply(new cdk.Tag('environment', 'prod'));
