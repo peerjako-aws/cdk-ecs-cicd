@@ -3,12 +3,14 @@ import ecr = require('@aws-cdk/aws-ecr');
 import codebuild = require('@aws-cdk/aws-codebuild');
 import codepipeline = require('@aws-cdk/aws-codepipeline');
 import codepipeline_actions = require('@aws-cdk/aws-codepipeline-actions');
+import s3 = require('@aws-cdk/aws-s3');
 import { PipelineContainerImage } from "./pipeline-container-image";
 
 export interface StagingProdPipelineStackProps extends cdk.StackProps {
     appRepository: ecr.Repository;
     nginxRepository: ecr.Repository;
-    imageTag: string;
+    dockerOutputArtifactBucket: string;
+    dockerOutputArtifactObjKey: string;
 }
 
 export class StagingProdPipelineStack extends cdk.Stack {
@@ -24,6 +26,7 @@ export class StagingProdPipelineStack extends cdk.Stack {
           autoDeploy: false,
         });
 
+        
         this.appRepository = props.appRepository;
         this.appBuiltImage = new PipelineContainerImage(this.appRepository);
     
@@ -31,7 +34,17 @@ export class StagingProdPipelineStack extends cdk.Stack {
         this.nginxBuiltImage = new PipelineContainerImage(this.nginxRepository);
     
         const sourceOutput = new codepipeline.Artifact();
-
+        const bucket = s3.Bucket.fromBucketAttributes(this, 'ArtifactBucket', {
+            bucketName: props.dockerOutputArtifactBucket
+        })
+        const dockerBuildOutput = new codepipeline.Artifact();
+        const s3SourceAction = new codepipeline_actions.S3SourceAction({
+            actionName: 'S3',
+            bucket: bucket,
+            bucketKey: props.dockerOutputArtifactObjKey,
+            output: dockerBuildOutput
+        })
+        
         const sourceAction = new codepipeline_actions.GitHubSourceAction({
           actionName: 'GitHub',
           owner: 'peerjako-aws',
@@ -76,7 +89,7 @@ export class StagingProdPipelineStack extends cdk.Stack {
             stages: [
               {
                 name: 'Source',
-                actions: [sourceAction],
+                actions: [sourceAction, s3SourceAction],
               },
               {
                 name: 'Build',
@@ -98,10 +111,11 @@ export class StagingProdPipelineStack extends cdk.Stack {
                     templatePath: cdkBuildOutput.atPath('StagingAppStack.template.yaml'),
                     adminPermissions: true,
                     parameterOverrides: {
-                      [this.appBuiltImage.paramName]: props.imageTag,
-                      [this.nginxBuiltImage.paramName]: props.imageTag,
-                    }
-                  }),
+                        [this.appBuiltImage.paramName]: dockerBuildOutput.getParam('imageTag.json', 'imageTag'),
+                        [this.nginxBuiltImage.paramName]: dockerBuildOutput.getParam('imageTag.json', 'imageTag'),
+                      },
+                      extraInputs: [dockerBuildOutput],
+                    }),
                 ],
               },
             ],
