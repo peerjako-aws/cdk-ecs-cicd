@@ -7,6 +7,9 @@ services:
       - 80:80
     links:
       - app
+    environment: 
+      - APP_HOST_NAME=app
+    command: /bin/bash -c "envsubst '$$APP_HOST_NAME' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && cat /etc/nginx/nginx.conf && exec nginx -g 'daemon off;'"
   app:
     build:
       context: ./app
