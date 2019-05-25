@@ -35,22 +35,22 @@ const devAppStack = new AppStack(app, 'DevAppStack', {
 });
 devAppStack.node.apply(new cdk.Tag('environment', 'dev'));
 
-// StagingAppStack
-const stagingAppStack = new AppStack(app, 'StagingAppStack', {
-    vpc: prodClusterStack.vpc,
-    cluster: prodClusterStack.cluster,
-    autoDeploy: false,
-    appImage: devPipelineStack.appBuiltImage,
-    nginxImage: devPipelineStack.nginxBuiltImage,
-});
-stagingAppStack.node.apply(new cdk.Tag('environment', 'staging'));
+// // StagingAppStack
+// const stagingAppStack = new AppStack(app, 'StagingAppStack', {
+//     vpc: prodClusterStack.vpc,
+//     cluster: prodClusterStack.cluster,
+//     autoDeploy: false,
+//     appImage: devPipelineStack.appBuiltImage,
+//     nginxImage: devPipelineStack.nginxBuiltImage,
+// });
+// stagingAppStack.node.apply(new cdk.Tag('environment', 'staging'));
 
-// ProdAppStack
-const prodAppStack = new AppStack(app, 'ProdAppStack', {
-    vpc: prodClusterStack.vpc,
-    cluster: prodClusterStack.cluster,
-    autoDeploy: false,
-    appImage: devPipelineStack.appBuiltImage,
-    nginxImage: devPipelineStack.nginxBuiltImage,
-});
-prodAppStack.node.apply(new cdk.Tag('environment', 'prod'));
+// // ProdAppStack
+// const prodAppStack = new AppStack(app, 'ProdAppStack', {
+//     vpc: prodClusterStack.vpc,
+//     cluster: prodClusterStack.cluster,
+//     autoDeploy: false,
+//     appImage: devPipelineStack.appBuiltImage,
+//     nginxImage: devPipelineStack.nginxBuiltImage,
+// });
+// prodAppStack.node.apply(new cdk.Tag('environment', 'prod'));
