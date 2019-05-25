@@ -76,8 +76,36 @@ export class DevPipelineStack extends cdk.Stack {
       });
       this.appRepository.grantPullPush(dockerBuild);
       this.nginxRepository.grantPullPush(dockerBuild);
-  
+
+      const cdkBuild = new codebuild.PipelineProject(this, 'CdkBuildProject', {
+        environment: {
+          buildImage: codebuild.LinuxBuildImage.UBUNTU_14_04_NODEJS_10_14_1,
+        },
+        buildSpec: {
+          version: '0.2',
+          phases: {
+            install: {
+              commands: [
+                'cd cdk',
+                'npm install',
+              ],
+            },
+            build: {
+              commands: [
+                'npm run build',
+                'npm run cdk synth DevAppStack -- -o .',
+                'ls',
+              ],
+            },
+          },
+          artifacts: {
+            files: 'DevAppStack.template.yaml',
+          },
+        },
+      });
+
       const dockerBuildOutput = new codepipeline.Artifact();
+      const cdkBuildOutput = new codepipeline.Artifact();
 
       new codepipeline.Pipeline(this, 'Pipeline', {
         stages: [
@@ -93,6 +121,12 @@ export class DevPipelineStack extends cdk.Stack {
                 project: dockerBuild,
                 input: sourceOutput,
                 output: dockerBuildOutput,
+              }),
+              new codepipeline_actions.CodeBuildAction({
+                actionName: 'CdkBuild',
+                project: cdkBuild,
+                input: sourceOutput,
+                output: cdkBuildOutput,
               })
             ],
           }
