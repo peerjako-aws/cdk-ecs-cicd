@@ -3,7 +3,6 @@ import ecr = require('@aws-cdk/aws-ecr');
 import codebuild = require('@aws-cdk/aws-codebuild');
 import codepipeline = require('@aws-cdk/aws-codepipeline');
 import codepipeline_actions = require('@aws-cdk/aws-codepipeline-actions');
-import ssm = require('@aws-cdk/aws-ssm');
 import { PipelineContainerImage } from "./pipeline-container-image";
 
 export class DevPipelineStack extends cdk.Stack {
