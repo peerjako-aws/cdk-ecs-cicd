@@ -3,14 +3,13 @@ import ecr = require('@aws-cdk/aws-ecr');
 import codebuild = require('@aws-cdk/aws-codebuild');
 import codepipeline = require('@aws-cdk/aws-codepipeline');
 import codepipeline_actions = require('@aws-cdk/aws-codepipeline-actions');
-import s3 = require('@aws-cdk/aws-s3');
+import { BuildEnvironmentVariableType } from '@aws-cdk/aws-codebuild';
 import { PipelineContainerImage } from "./pipeline-container-image";
 
 export interface StagingProdPipelineStackProps extends cdk.StackProps {
     appRepository: ecr.Repository;
     nginxRepository: ecr.Repository;
-    dockerOutputArtifactBucket: string;
-    dockerOutputArtifactObjKey: string;
+    imageTag: string;
 }
 
 export class StagingProdPipelineStack extends cdk.Stack {
@@ -34,16 +33,6 @@ export class StagingProdPipelineStack extends cdk.Stack {
         this.nginxBuiltImage = new PipelineContainerImage(this.nginxRepository);
     
         const sourceOutput = new codepipeline.Artifact();
-        const bucket = s3.Bucket.fromBucketAttributes(this, 'ArtifactBucket', {
-            bucketName: props.dockerOutputArtifactBucket
-        })
-        const dockerBuildOutput = new codepipeline.Artifact();
-        const s3SourceAction = new codepipeline_actions.S3SourceAction({
-            actionName: 'S3',
-            bucket: bucket,
-            bucketKey: props.dockerOutputArtifactObjKey,
-            output: dockerBuildOutput
-        })
         
         const sourceAction = new codepipeline_actions.GitHubSourceAction({
           actionName: 'GitHub',
@@ -57,6 +46,12 @@ export class StagingProdPipelineStack extends cdk.Stack {
         const cdkBuild = new codebuild.PipelineProject(this, 'CdkBuildProject', {
             environment: {
               buildImage: codebuild.LinuxBuildImage.UBUNTU_14_04_NODEJS_10_14_1,
+            },
+            environmentVariables: {
+                IMAGE_TAG: {
+                    type: BuildEnvironmentVariableType.PlainText,
+                    value: props.imageTag
+                }
             },
             buildSpec: {
               version: '0.2',
@@ -72,13 +67,19 @@ export class StagingProdPipelineStack extends cdk.Stack {
                     'npm run build',
                     'npm run cdk synth StagingAppStack -- -o .',
                     'npm run cdk synth ProdAppStack -- -o .',
+                    `printf '{ "imageTag": "'$IMAGE_TAG'" }' > imageTag.json`,
                     'ls',
                   ],
                 },
               },
               artifacts: {
                 'base-directory': 'cdk',
-                files: '*.template.yaml',
+                files: [
+                    'StagingAppStack.template.yaml',
+                    'ProdAppStack.template.yaml',
+                    'imageTag.json'
+                ],
+                
               },
             },
           });
@@ -89,7 +90,7 @@ export class StagingProdPipelineStack extends cdk.Stack {
             stages: [
               {
                 name: 'Source',
-                actions: [sourceAction, s3SourceAction],
+                actions: [sourceAction],
               },
               {
                 name: 'Build',
@@ -111,10 +112,10 @@ export class StagingProdPipelineStack extends cdk.Stack {
                     templatePath: cdkBuildOutput.atPath('StagingAppStack.template.yaml'),
                     adminPermissions: true,
                     parameterOverrides: {
-                        [this.appBuiltImage.paramName]: dockerBuildOutput.getParam('imageTag.json', 'imageTag'),
-                        [this.nginxBuiltImage.paramName]: dockerBuildOutput.getParam('imageTag.json', 'imageTag'),
+                        [this.appBuiltImage.paramName]: cdkBuildOutput.getParam('imageTag.json', 'imageTag'),
+                        [this.nginxBuiltImage.paramName]: cdkBuildOutput.getParam('imageTag.json', 'imageTag'),
                       },
-                      extraInputs: [dockerBuildOutput],
+                      extraInputs: [cdkBuildOutput],
                     }),
                 ],
               },

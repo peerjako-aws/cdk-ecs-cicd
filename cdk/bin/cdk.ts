@@ -29,8 +29,7 @@ devPipelineStack.node.apply(new cdk.Tag('environment', 'dev'));
 const stagingProdPipelineStack = new StagingProdPipelineStack(app, 'StagingProdPipelineStack', {
     appRepository: devPipelineStack.appRepository,
     nginxRepository: devPipelineStack.nginxRepository,
-    dockerOutputArtifactBucket: devPipelineStack.dockerOutputArtifactBucketName,
-    dockerOutputArtifactObjKey: devPipelineStack.dockerOutputArtifactBucketObjKey
+    imageTag: devPipelineStack.imageTag
 });
 stagingProdPipelineStack.node.apply(new cdk.Tag('environment', 'prod'));
 

@@ -21,7 +21,7 @@ export class AppStack extends cdk.Stack {
             memoryMiB: '512',
             cpu: '256'
         });
-
+        
         // Add app container
         const appLogging = new ecs.AwsLogDriver(this, "AppLogging", {
             streamPrefix: "app",
