@@ -6,6 +6,7 @@ import codepipeline = require('@aws-cdk/aws-codepipeline');
 import codepipeline_actions = require('@aws-cdk/aws-codepipeline-actions');
 import { PipelineContainerImage } from "./pipeline-container-image";
 import { PolicyStatementEffect } from '@aws-cdk/aws-iam';
+import { githubOwner, repoName, awsSecretsGitHubTokenName, gitDevBranch, ssmImageTagParamName } from '../config'
 
 export class DevPipelineStack extends cdk.Stack {
   public readonly appRepository: ecr.Repository;
@@ -31,11 +32,12 @@ export class DevPipelineStack extends cdk.Stack {
     const sourceOutput = new codepipeline.Artifact();
     const sourceAction = new codepipeline_actions.GitHubSourceAction({
       actionName: 'GitHub',
-      owner: 'peerjako-aws',
-      repo: 'cdk-ecs-cicd',
-      oauthToken: cdk.SecretValue.secretsManager('github-personal-access-token'),
+      owner: githubOwner,
+      repo: repoName,
+      oauthToken: cdk.SecretValue.secretsManager(awsSecretsGitHubTokenName),
       output: sourceOutput,
       trigger: codepipeline_actions.GitHubTrigger.Poll,
+      branch: gitDevBranch
     });
 
     const dockerBuild = new codebuild.PipelineProject(this, 'DockerCodeBuildProject', {
@@ -60,7 +62,7 @@ export class DevPipelineStack extends cdk.Stack {
                 'docker push $APP_REPOSITORY_URI:$CODEBUILD_RESOLVED_SOURCE_VERSION',
                 'docker push $NGINX_REPOSITORY_URI:$CODEBUILD_RESOLVED_SOURCE_VERSION',
                 `printf '{ "imageTag": "'$CODEBUILD_RESOLVED_SOURCE_VERSION'" }' > imageTag.json`,
-                'aws ssm put-parameter --name "latest-dev-imagetag" --value $CODEBUILD_RESOLVED_SOURCE_VERSION --type String --overwrite'
+                'aws ssm put-parameter --name "' + ssmImageTagParamName + '" --value $CODEBUILD_RESOLVED_SOURCE_VERSION --type String --overwrite'
               ],
             },
           },
@@ -78,7 +80,7 @@ export class DevPipelineStack extends cdk.Stack {
         },
       });
       dockerBuild.addToRolePolicy(new iam.PolicyStatement(PolicyStatementEffect.Allow)
-        .addResource('arn:aws:ssm:*:*:parameter/latest-dev-imagetag')
+        .addResource('arn:aws:ssm:*:*:parameter/' + ssmImageTagParamName)
         .addAction('ssm:PutParameter')
       );
       this.appRepository.grantPullPush(dockerBuild);

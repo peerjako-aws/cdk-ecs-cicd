@@ -7,6 +7,8 @@ import codepipeline_actions = require('@aws-cdk/aws-codepipeline-actions');
 import { PipelineContainerImage } from "./pipeline-container-image";
 import { PolicyStatementEffect } from '@aws-cdk/aws-iam';
 
+import { githubOwner, repoName, awsSecretsGitHubTokenName, gitProdBranch, ssmImageTagParamName } from '../config'
+
 export interface StagingProdPipelineStackProps extends cdk.StackProps {
     appRepository: ecr.Repository;
     nginxRepository: ecr.Repository;
@@ -28,7 +30,6 @@ export class StagingProdPipelineStack extends cdk.Stack {
           autoDeploy: false,
         });
 
-        
         this.appRepository = props.appRepository;
         this.appBuiltImageStaging = new PipelineContainerImage(this.appRepository);
         this.appBuiltImageProd = new PipelineContainerImage(this.appRepository);
@@ -41,11 +42,12 @@ export class StagingProdPipelineStack extends cdk.Stack {
         
         const sourceAction = new codepipeline_actions.GitHubSourceAction({
           actionName: 'GitHub',
-          owner: 'peerjako-aws',
-          repo: 'cdk-ecs-cicd',
-          oauthToken: cdk.SecretValue.secretsManager('github-personal-access-token'),
+          owner: githubOwner,
+          repo: repoName,
+          oauthToken: cdk.SecretValue.secretsManager(awsSecretsGitHubTokenName),
           output: sourceOutput,
-          trigger: codepipeline_actions.GitHubTrigger.None
+          trigger: codepipeline_actions.GitHubTrigger.None,
+          branch: gitProdBranch
         });
 
         const cdkBuild = new codebuild.PipelineProject(this, 'CdkBuildProject', {
@@ -66,7 +68,7 @@ export class StagingProdPipelineStack extends cdk.Stack {
                     'npm run build',
                     'npm run cdk synth StagingAppStack -- -o .',
                     'npm run cdk synth ProdAppStack -- -o .',
-                    'IMAGE_TAG=`aws ssm get-parameter --name "latest-dev-imagetag" --output text --query Parameter.Value`',
+                    'IMAGE_TAG=`aws ssm get-parameter --name "' + ssmImageTagParamName + '" --output text --query Parameter.Value`',
                     `printf '{ "imageTag": "'$IMAGE_TAG'" }' > imageTag.json`,
                     'ls',
                   ],
@@ -84,7 +86,7 @@ export class StagingProdPipelineStack extends cdk.Stack {
             },
           });
           cdkBuild.addToRolePolicy(new iam.PolicyStatement(PolicyStatementEffect.Allow)
-            .addResource('arn:aws:ssm:*:*:parameter/latest-dev-imagetag')
+            .addResource('arn:aws:ssm:*:*:parameter/' + ssmImageTagParamName)
             .addAction('ssm:GetParameter')
           );
 
@@ -115,6 +117,7 @@ export class StagingProdPipelineStack extends cdk.Stack {
                     stackName: 'StagingAppStack',
                     templatePath: cdkBuildOutput.atPath('StagingAppStack.template.yaml'),
                     adminPermissions: true,
+                    runOrder: 1,
                     parameterOverrides: {
                         [this.appBuiltImageStaging.paramName]: cdkBuildOutput.getParam('imageTag.json', 'imageTag'),
                         [this.nginxBuiltImageStaging.paramName]: cdkBuildOutput.getParam('imageTag.json', 'imageTag'),
@@ -123,6 +126,7 @@ export class StagingProdPipelineStack extends cdk.Stack {
                     }),
                   new codepipeline_actions.ManualApprovalAction({
                       actionName: 'Validation',
+                      runOrder: 2,
                       notifyEmails: [
                           'peerjako@amazon.com'
                       ]
