@@ -1,10 +1,11 @@
 import cdk = require('@aws-cdk/cdk');
+import iam = require('@aws-cdk/aws-iam');
 import ecr = require('@aws-cdk/aws-ecr');
 import codebuild = require('@aws-cdk/aws-codebuild');
 import codepipeline = require('@aws-cdk/aws-codepipeline');
 import codepipeline_actions = require('@aws-cdk/aws-codepipeline-actions');
-import { BuildEnvironmentVariableType } from '@aws-cdk/aws-codebuild';
 import { PipelineContainerImage } from "./pipeline-container-image";
+import { PolicyStatementEffect } from '@aws-cdk/aws-iam';
 
 export interface StagingProdPipelineStackProps extends cdk.StackProps {
     appRepository: ecr.Repository;
@@ -47,12 +48,6 @@ export class StagingProdPipelineStack extends cdk.Stack {
             environment: {
               buildImage: codebuild.LinuxBuildImage.UBUNTU_14_04_NODEJS_10_14_1,
             },
-            environmentVariables: {
-                IMAGE_TAG: {
-                    type: BuildEnvironmentVariableType.PlainText,
-                    value: props.imageTag
-                }
-            },
             buildSpec: {
               version: '0.2',
               phases: {
@@ -67,6 +62,7 @@ export class StagingProdPipelineStack extends cdk.Stack {
                     'npm run build',
                     'npm run cdk synth StagingAppStack -- -o .',
                     'npm run cdk synth ProdAppStack -- -o .',
+                    'IMAGE_TAG=`aws ssm get-parameter --name "latest-dev-imagetag" --output text --query Parameter.Value`',
                     `printf '{ "imageTag": "'$IMAGE_TAG'" }' > imageTag.json`,
                     'ls',
                   ],
@@ -83,7 +79,11 @@ export class StagingProdPipelineStack extends cdk.Stack {
               },
             },
           });
-    
+          cdkBuild.addToRolePolicy(new iam.PolicyStatement(PolicyStatementEffect.Allow)
+            .addResource('arn:aws:ssm:*:*:parameter/latest-dev-imagetag')
+            .addAction('ssm:GetParameter')
+          );
+
           const cdkBuildOutput = new codepipeline.Artifact();
     
           new codepipeline.Pipeline(this, 'Pipeline', {

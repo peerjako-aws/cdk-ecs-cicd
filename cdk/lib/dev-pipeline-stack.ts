@@ -1,9 +1,11 @@
 import cdk = require('@aws-cdk/cdk');
+import iam = require('@aws-cdk/aws-iam');
 import ecr = require('@aws-cdk/aws-ecr');
 import codebuild = require('@aws-cdk/aws-codebuild');
 import codepipeline = require('@aws-cdk/aws-codepipeline');
 import codepipeline_actions = require('@aws-cdk/aws-codepipeline-actions');
 import { PipelineContainerImage } from "./pipeline-container-image";
+import { PolicyStatementEffect } from '@aws-cdk/aws-iam';
 
 export class DevPipelineStack extends cdk.Stack {
   public readonly appRepository: ecr.Repository;
@@ -58,6 +60,7 @@ export class DevPipelineStack extends cdk.Stack {
                 'docker push $APP_REPOSITORY_URI:$CODEBUILD_RESOLVED_SOURCE_VERSION',
                 'docker push $NGINX_REPOSITORY_URI:$CODEBUILD_RESOLVED_SOURCE_VERSION',
                 `printf '{ "imageTag": "'$CODEBUILD_RESOLVED_SOURCE_VERSION'" }' > imageTag.json`,
+                'aws ssm put-parameter --name "latest-dev-imagetag" --value $CODEBUILD_RESOLVED_SOURCE_VERSION --type String --overwrite'
               ],
             },
           },
@@ -74,6 +77,10 @@ export class DevPipelineStack extends cdk.Stack {
           },
         },
       });
+      dockerBuild.addToRolePolicy(new iam.PolicyStatement(PolicyStatementEffect.Allow)
+        .addResource('arn:aws:ssm:*:*:parameter/latest-dev-imagetag')
+        .addAction('ssm:PutParameter')
+      );
       this.appRepository.grantPullPush(dockerBuild);
       this.nginxRepository.grantPullPush(dockerBuild);
 
