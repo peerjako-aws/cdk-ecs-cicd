@@ -15,10 +15,12 @@ export interface StagingProdPipelineStackProps extends cdk.StackProps {
 
 export class StagingProdPipelineStack extends cdk.Stack {
     public readonly appRepository: ecr.Repository;
-    public readonly appBuiltImage: PipelineContainerImage;
+    public readonly appBuiltImageStaging: PipelineContainerImage;
+    public readonly appBuiltImageProd: PipelineContainerImage;
   
     public readonly nginxRepository: ecr.Repository;
-    public readonly nginxBuiltImage: PipelineContainerImage;
+    public readonly nginxBuiltImageStaging: PipelineContainerImage;
+    public readonly nginxBuiltImageProd: PipelineContainerImage;
   
     constructor(scope: cdk.Construct, id: string, props: StagingProdPipelineStackProps) {
         super(scope, id, {
@@ -28,10 +30,12 @@ export class StagingProdPipelineStack extends cdk.Stack {
 
         
         this.appRepository = props.appRepository;
-        this.appBuiltImage = new PipelineContainerImage(this.appRepository);
+        this.appBuiltImageStaging = new PipelineContainerImage(this.appRepository);
+        this.appBuiltImageProd = new PipelineContainerImage(this.appRepository);
     
         this.nginxRepository = props.nginxRepository;
-        this.nginxBuiltImage = new PipelineContainerImage(this.nginxRepository);
+        this.nginxBuiltImageStaging = new PipelineContainerImage(this.nginxRepository);
+        this.nginxBuiltImageProd = new PipelineContainerImage(this.nginxRepository);
     
         const sourceOutput = new codepipeline.Artifact();
         
@@ -112,8 +116,30 @@ export class StagingProdPipelineStack extends cdk.Stack {
                     templatePath: cdkBuildOutput.atPath('StagingAppStack.template.yaml'),
                     adminPermissions: true,
                     parameterOverrides: {
-                        [this.appBuiltImage.paramName]: cdkBuildOutput.getParam('imageTag.json', 'imageTag'),
-                        [this.nginxBuiltImage.paramName]: cdkBuildOutput.getParam('imageTag.json', 'imageTag'),
+                        [this.appBuiltImageStaging.paramName]: cdkBuildOutput.getParam('imageTag.json', 'imageTag'),
+                        [this.nginxBuiltImageStaging.paramName]: cdkBuildOutput.getParam('imageTag.json', 'imageTag'),
+                      },
+                      extraInputs: [cdkBuildOutput],
+                    }),
+                  new codepipeline_actions.ManualApprovalAction({
+                      actionName: 'Validation',
+                      notifyEmails: [
+                          'peerjako@amazon.com'
+                      ]
+                  })
+                ],
+              },
+              {
+                name: 'DeployProd',
+                actions: [
+                  new codepipeline_actions.CloudFormationCreateUpdateStackAction({
+                    actionName: 'CFN_Deploy',
+                    stackName: 'ProdAppStack',
+                    templatePath: cdkBuildOutput.atPath('ProdAppStack.template.yaml'),
+                    adminPermissions: true,
+                    parameterOverrides: {
+                        [this.appBuiltImageProd.paramName]: cdkBuildOutput.getParam('imageTag.json', 'imageTag'),
+                        [this.nginxBuiltImageProd.paramName]: cdkBuildOutput.getParam('imageTag.json', 'imageTag'),
                       },
                       extraInputs: [cdkBuildOutput],
                     }),

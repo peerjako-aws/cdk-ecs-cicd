@@ -48,8 +48,8 @@ const stagingAppStack = new AppStack(app, 'StagingAppStack', {
     vpc: prodClusterStack.vpc,
     cluster: prodClusterStack.cluster,
     autoDeploy: false,
-    appImage: stagingProdPipelineStack.appBuiltImage,
-    nginxImage: stagingProdPipelineStack.nginxBuiltImage,
+    appImage: stagingProdPipelineStack.appBuiltImageStaging,
+    nginxImage: stagingProdPipelineStack.nginxBuiltImageStaging,
 });
 stagingAppStack.node.apply(new cdk.Tag('environment', 'staging'));
 
@@ -58,7 +58,7 @@ const prodAppStack = new AppStack(app, 'ProdAppStack', {
     vpc: prodClusterStack.vpc,
     cluster: prodClusterStack.cluster,
     autoDeploy: false,
-    appImage: stagingProdPipelineStack.appBuiltImage,
-    nginxImage: stagingProdPipelineStack.nginxBuiltImage,
+    appImage: stagingProdPipelineStack.appBuiltImageProd,
+    nginxImage: stagingProdPipelineStack.nginxBuiltImageProd,
 });
 prodAppStack.node.apply(new cdk.Tag('environment', 'prod'));
