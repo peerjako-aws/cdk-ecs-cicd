@@ -8,6 +8,7 @@ import { PipelineContainerImage } from "./pipeline-container-image";
 export interface StagingProdPipelineStackProps extends cdk.StackProps {
     appRepository: ecr.Repository;
     nginxRepository: ecr.Repository;
+    imageTag: string;
 }
 
 export class StagingProdPipelineStack extends cdk.Stack {
@@ -95,7 +96,11 @@ export class StagingProdPipelineStack extends cdk.Stack {
                     actionName: 'CFN_Deploy',
                     stackName: 'StagingAppStack',
                     templatePath: cdkBuildOutput.atPath('StagingAppStack.template.yaml'),
-                    adminPermissions: true
+                    adminPermissions: true,
+                    parameterOverrides: {
+                      [this.appBuiltImage.paramName]: props.imageTag,
+                      [this.nginxBuiltImage.paramName]: props.imageTag,
+                    }
                   }),
                 ],
               },

@@ -12,7 +12,7 @@ export class DevPipelineStack extends cdk.Stack {
   public readonly nginxRepository: ecr.Repository;
   public readonly nginxBuiltImage: PipelineContainerImage;
 
-  public readonly dockerBuiltOutput: codepipeline.Artifact;
+  public readonly imageTag: string;
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, {
       ...props,
@@ -148,9 +148,7 @@ export class DevPipelineStack extends cdk.Stack {
           },
         ],
       });
-      this.dockerBuiltOutput = dockerBuildOutput;
-      new cdk.CfnOutput(this, 'AppRepo', { value: this.appRepository.repositoryName });
-      new cdk.CfnOutput(this, 'NginxRepo', { value: this.nginxRepository.repositoryName });
+      this.imageTag = dockerBuildOutput.getParam('imageTag.json', 'imageTag');
 
     }
   }
