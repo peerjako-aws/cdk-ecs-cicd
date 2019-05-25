@@ -7,7 +7,7 @@ import codepipeline_actions = require('@aws-cdk/aws-codepipeline-actions');
 import { PipelineContainerImage } from "./pipeline-container-image";
 import { PolicyStatementEffect } from '@aws-cdk/aws-iam';
 
-import { githubOwner, repoName, awsSecretsGitHubTokenName, gitProdBranch, ssmImageTagParamName } from '../config'
+import { githubOwner, repoName, awsSecretsGitHubTokenName, gitProdBranch, ssmImageTagParamName, stagingValidationEmail } from '../config'
 
 export interface StagingProdPipelineStackProps extends cdk.StackProps {
     appRepository: ecr.Repository;
@@ -128,7 +128,7 @@ export class StagingProdPipelineStack extends cdk.Stack {
                       actionName: 'Validation',
                       runOrder: 2,
                       notifyEmails: [
-                          'peerjako@amazon.com'
+                        stagingValidationEmail
                       ]
                   })
                 ],
