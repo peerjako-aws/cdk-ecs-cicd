@@ -21,6 +21,7 @@
     "@aws-cdk/aws-ec2": "^0.32.0",
     "@aws-cdk/aws-ecs": "^0.32.0",
     "@aws-cdk/aws-elasticloadbalancingv2": "^0.32.0",
+    "@aws-cdk/aws-ssm": "^0.32.0",
     "@aws-cdk/cdk": "^0.32.0",
     "source-map-support": "^0.5.9"
   }

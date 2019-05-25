@@ -5,6 +5,7 @@ import cdk = require('@aws-cdk/cdk');
 import { ClusterStack } from '../lib/cluster-stack';
 import { AppStack } from '../lib/app-stack';
 import { DevPipelineStack } from '../lib/dev-pipeline-stack';
+import { StagingProdPipelineStack } from '../lib/staging-prod-pipeline-stack';
 
 const app = new cdk.App();
 
@@ -25,6 +26,12 @@ prodClusterStack.node.apply(new cdk.Tag('environment', 'prod'));
 const devPipelineStack = new DevPipelineStack(app, 'DevPipelineStack');
 devPipelineStack.node.apply(new cdk.Tag('environment', 'dev'));
 
+const stagingProdPipelineStack = new StagingProdPipelineStack(app, 'StagingProdPipelineStack', {
+    appRepository: devPipelineStack.appRepository,
+    nginxRepository: devPipelineStack.nginxRepository
+});
+devPipelineStack.node.apply(new cdk.Tag('environment', 'dev'));
+
 // DevAppStack
 const devAppStack = new AppStack(app, 'DevAppStack', {
     vpc: devClusterStack.vpc,
@@ -35,22 +42,22 @@ const devAppStack = new AppStack(app, 'DevAppStack', {
 });
 devAppStack.node.apply(new cdk.Tag('environment', 'dev'));
 
-// // StagingAppStack
-// const stagingAppStack = new AppStack(app, 'StagingAppStack', {
-//     vpc: prodClusterStack.vpc,
-//     cluster: prodClusterStack.cluster,
-//     autoDeploy: false,
-//     appImage: devPipelineStack.appBuiltImage,
-//     nginxImage: devPipelineStack.nginxBuiltImage,
-// });
-// stagingAppStack.node.apply(new cdk.Tag('environment', 'staging'));
+// StagingAppStack
+const stagingAppStack = new AppStack(app, 'StagingAppStack', {
+    vpc: prodClusterStack.vpc,
+    cluster: prodClusterStack.cluster,
+    autoDeploy: false,
+    appImage: stagingProdPipelineStack.appBuiltImage,
+    nginxImage: stagingProdPipelineStack.nginxBuiltImage,
+});
+stagingAppStack.node.apply(new cdk.Tag('environment', 'staging'));
 
-// // ProdAppStack
-// const prodAppStack = new AppStack(app, 'ProdAppStack', {
-//     vpc: prodClusterStack.vpc,
-//     cluster: prodClusterStack.cluster,
-//     autoDeploy: false,
-//     appImage: devPipelineStack.appBuiltImage,
-//     nginxImage: devPipelineStack.nginxBuiltImage,
-// });
-// prodAppStack.node.apply(new cdk.Tag('environment', 'prod'));
+// ProdAppStack
+const prodAppStack = new AppStack(app, 'ProdAppStack', {
+    vpc: prodClusterStack.vpc,
+    cluster: prodClusterStack.cluster,
+    autoDeploy: false,
+    appImage: stagingProdPipelineStack.appBuiltImage,
+    nginxImage: stagingProdPipelineStack.nginxBuiltImage,
+});
+prodAppStack.node.apply(new cdk.Tag('environment', 'prod'));

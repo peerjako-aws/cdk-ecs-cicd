@@ -3,6 +3,7 @@ import ecr = require('@aws-cdk/aws-ecr');
 import codebuild = require('@aws-cdk/aws-codebuild');
 import codepipeline = require('@aws-cdk/aws-codepipeline');
 import codepipeline_actions = require('@aws-cdk/aws-codepipeline-actions');
+import ssm = require('@aws-cdk/aws-ssm');
 import { PipelineContainerImage } from "./pipeline-container-image";
 
 export class DevPipelineStack extends cdk.Stack {
@@ -12,6 +13,7 @@ export class DevPipelineStack extends cdk.Stack {
   public readonly nginxRepository: ecr.Repository;
   public readonly nginxBuiltImage: PipelineContainerImage;
 
+  public readonly dockerBuiltOutput: codepipeline.Artifact;
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, {
       ...props,
@@ -33,8 +35,6 @@ export class DevPipelineStack extends cdk.Stack {
       output: sourceOutput,
       trigger: codepipeline_actions.GitHubTrigger.Poll,
     });
-
-
 
     const dockerBuild = new codebuild.PipelineProject(this, 'DockerCodeBuildProject', {
         environment: {
@@ -149,5 +149,9 @@ export class DevPipelineStack extends cdk.Stack {
           },
         ],
       });
+      this.dockerBuiltOutput = dockerBuildOutput;
+      new cdk.CfnOutput(this, 'AppRepo', { value: this.appRepository.repositoryName });
+      new cdk.CfnOutput(this, 'NginxRepo', { value: this.nginxRepository.repositoryName });
+
     }
   }
