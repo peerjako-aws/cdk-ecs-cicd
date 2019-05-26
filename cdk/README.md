@@ -83,6 +83,17 @@ Go into the pipeline and wait for the Source action to start pulling your change
 
 https://console.aws.amazon.com/codesuite/codepipeline/pipelines
 
+## Cleaning up
+
+The resources created does incur cost so remember to clean up by running cdk destroy on the stacks. Cost is mainly for the ECS Fargate tasks, the load balancers and the VPC NAT gateways. To delete everything run the following
+
+```
+cdk destroy DevPipelineStack
+cdk destroy StagingProdPipelineStack
+cdk destroy ProdCluster
+cdk destroy DevCluster
+```
+
 
 
 # Useful commands
