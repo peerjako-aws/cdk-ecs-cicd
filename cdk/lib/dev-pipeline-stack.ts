@@ -102,8 +102,7 @@ export class DevPipelineStack extends cdk.Stack {
             build: {
               commands: [
                 'npm run build',
-                'npm run cdk synth DevAppStack -- -o .',
-                'ls',
+                'npm run cdk synth DevAppStack -- -o .'
               ],
             },
           },
@@ -114,6 +113,7 @@ export class DevPipelineStack extends cdk.Stack {
         },
       });
       cdkBuild.addToRolePolicy(new iam.PolicyStatement(PolicyStatementEffect.Allow)
+        .addResource('*')
         .addAction('ec2:DescribeAvailabilityZones')
       );
 
