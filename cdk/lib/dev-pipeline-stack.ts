@@ -113,6 +113,9 @@ export class DevPipelineStack extends cdk.Stack {
           },
         },
       });
+      cdkBuild.addToRolePolicy(new iam.PolicyStatement(PolicyStatementEffect.Allow)
+        .addAction('ec2:DescribeAvailabilityZones')
+      );
 
       const dockerBuildOutput = new codepipeline.Artifact("DockerBuildOutput");
       const cdkBuildOutput = new codepipeline.Artifact();
