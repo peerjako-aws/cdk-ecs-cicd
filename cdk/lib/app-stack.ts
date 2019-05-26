@@ -54,6 +54,14 @@ export class AppStack extends cdk.Stack {
             taskDefinition
         });
 
+        // Setup autoscaling
+        const scaling = service.autoScaleTaskCount({ maxCapacity: 2 });
+        scaling.scaleOnCpuUtilization('CpuScaling', {
+            targetUtilizationPercent: 50,
+            scaleInCooldownSec: 60,
+            scaleOutCooldownSec: 60
+          });
+
         // Add public ALB loadbalancer targetting service
         const lb = new elbv2.ApplicationLoadBalancer(this, 'LB', {
             vpc: props.vpc,
