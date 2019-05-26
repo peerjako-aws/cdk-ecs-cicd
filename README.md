@@ -113,6 +113,10 @@ When a new release has been deployed to the staging environment a validation ema
 
 Click [here](cdk/README.md) for details on how to deploy the Fargate clusters, CICD pipeline and dev, staging and prod environments.
 
+### What else to do
+
+This repo is meant to show an example of how to use CDK to setup CICD pipelines for your docker based applications using AWS CodePipeline. Every company has their own workflow so you could try to change the CDK code into something that matches your companys workflow. You could also add automated test steps into the pipelines to validate that the Penguin app works correctly.
+
 ## Known problems
 
 The docker compose file in the root of this repo is currently not working since docker compose services communicates based on service dns names whereas ECS Fargate has containers running in the same task communicate over localhost. Some kind of mechanism for using localhost vs app dns name in the nginx config file (proxy_pass) has to be implemented to make this work.
