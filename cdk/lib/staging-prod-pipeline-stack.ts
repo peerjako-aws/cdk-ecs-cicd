@@ -89,7 +89,11 @@ export class StagingProdPipelineStack extends cdk.Stack {
             .addResource('arn:aws:ssm:*:*:parameter/' + ssmImageTagParamName)
             .addAction('ssm:GetParameter')
           );
-
+          cdkBuild.addToRolePolicy(new iam.PolicyStatement(PolicyStatementEffect.Allow)
+            .addResource('*')
+            .addAction('ec2:DescribeAvailabilityZones')
+          );
+          
           const cdkBuildOutput = new codepipeline.Artifact();
     
           new codepipeline.Pipeline(this, 'Pipeline', {
