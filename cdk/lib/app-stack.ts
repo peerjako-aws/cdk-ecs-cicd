@@ -3,6 +3,7 @@ import ec2 = require('@aws-cdk/aws-ec2');
 import ecs = require('@aws-cdk/aws-ecs');
 import elbv2 = require('@aws-cdk/aws-elasticloadbalancingv2');
 import path = require('path');
+import { Metric } from '@aws-cdk/aws-cloudwatch';
 
 export interface AppStackProps extends cdk.StackProps {
     vpc: ec2.Vpc;
@@ -55,12 +56,22 @@ export class AppStack extends cdk.Stack {
         });
 
         // Setup autoscaling
-        const scaling = service.autoScaleTaskCount({ maxCapacity: 2 });
-        scaling.scaleOnCpuUtilization('CpuScaling', {
-            targetUtilizationPercent: 50,
-            scaleInCooldownSec: 60,
-            scaleOutCooldownSec: 60
-          });
+        const scaling = service.autoScaleTaskCount({ maxCapacity: 4 });
+        // scaling.scaleOnCpuUtilization('CpuScaling', {
+        //     targetUtilizationPercent: 50,
+        //     scaleInCooldownSec: 60,
+        //     scaleOutCooldownSec: 60
+        //   });
+
+        scaling.scaleOnSchedule('ScheduleScalingUp', {
+            minCapacity: 2,
+            schedule: "0 0 0/2 ? * *"
+        })
+        
+        // scaling.scaleOnSchedule('ScheduleScalingDown', {
+        //     minCapacity: 1,
+        //     schedule: "0 0 1/2 ? * *"
+        // })
 
         // Add public ALB loadbalancer targetting service
         const lb = new elbv2.ApplicationLoadBalancer(this, 'LB', {
