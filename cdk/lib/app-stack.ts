@@ -64,7 +64,7 @@ export class AppStack extends cdk.Stack {
 
         scaling.scaleOnSchedule('ScheduleScalingUp', {
             minCapacity: 2,
-            schedule: "0 0 0/2 ? * *"
+            schedule: "cron(0 0 0/2 ? * *)"
         })
         
         // scaling.scaleOnSchedule('ScheduleScalingDown', {
