@@ -3,7 +3,6 @@ import ec2 = require('@aws-cdk/aws-ec2');
 import ecs = require('@aws-cdk/aws-ecs');
 import elbv2 = require('@aws-cdk/aws-elasticloadbalancingv2');
 import path = require('path');
-import { Metric } from '@aws-cdk/aws-cloudwatch';
 
 export interface AppStackProps extends cdk.StackProps {
     vpc: ec2.Vpc;
