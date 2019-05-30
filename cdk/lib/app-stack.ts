@@ -69,7 +69,7 @@ export class AppStack extends cdk.Stack {
         
         scaling.scaleOnSchedule('ScheduleScalingDown', {
              minCapacity: 1,
-             schedule: "0 0 1/2 ? * *"
+             schedule: "cron(0 0 1/2 ? * *)"
         });
 
         // Add public ALB loadbalancer targetting service
