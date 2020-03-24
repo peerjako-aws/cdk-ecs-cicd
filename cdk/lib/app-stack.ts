@@ -1,7 +1,8 @@
-import cdk = require('@aws-cdk/cdk');
-import ec2 = require('@aws-cdk/aws-ec2');
-import ecs = require('@aws-cdk/aws-ecs');
-import elbv2 = require('@aws-cdk/aws-elasticloadbalancingv2');
+
+import * as cdk from '@aws-cdk/core';
+import * as ec2 from '@aws-cdk/aws-ec2';
+import * as ecs from '@aws-cdk/aws-ecs';
+import * as elbv2 from '@aws-cdk/aws-elasticloadbalancingv2';
 import path = require('path');
 
 export interface AppStackProps extends cdk.StackProps {
@@ -18,17 +19,18 @@ export class AppStack extends cdk.Stack {
 
         // Create a task definition with 2 containers and CloudWatch Logs
         const taskDefinition = new ecs.FargateTaskDefinition(this, 'TaskDef', {
-            memoryMiB: '512',
-            cpu: '256'
+            memoryLimitMiB: 512,            
+            cpu: 256
         });
         
         // Add app container
-        const appLogging = new ecs.AwsLogDriver(this, "AppLogging", {
-            streamPrefix: "app",
+        const appLogging = new ecs.AwsLogDriver({
+            streamPrefix: "app"
         });
-        const appImage = props.appImage || new ecs.AssetImage(this, 'AppImage', {
-            directory: path.join(__dirname, '../..', 'app')
-          });
+
+        const appImage = props.appImage || new ecs.AssetImage(path.join(__dirname, '../..', 'app'));
+
+ 
         const appContainer = taskDefinition.addContainer("app", {
             image: appImage,
             logging: appLogging
@@ -36,12 +38,10 @@ export class AppStack extends cdk.Stack {
         appContainer.addPortMappings({ containerPort: 3000 });
 
         // Add nginx container 
-        const nginxLogging = new ecs.AwsLogDriver(this, "NginxLogging", {
+        const nginxLogging = new ecs.AwsLogDriver({
             streamPrefix: "nginx",
         });
-        const nginxImage = props.nginxImage || new ecs.AssetImage(this, 'NginxImage', {
-            directory: path.join(__dirname, '../..', 'nginx')
-          });
+        const nginxImage = props.nginxImage || new ecs.AssetImage(path.join(__dirname, '../..', 'nginx'));
         const nginxContainer = taskDefinition.addContainer("nginx", {
             image: nginxImage,
             logging: nginxLogging
@@ -58,8 +58,8 @@ export class AppStack extends cdk.Stack {
         const scaling = service.autoScaleTaskCount({ maxCapacity: 2 });
         scaling.scaleOnCpuUtilization('CpuScaling', {
             targetUtilizationPercent: 50,
-            scaleInCooldownSec: 60,
-            scaleOutCooldownSec: 60
+            scaleInCooldown: cdk.Duration.seconds(60),
+            scaleOutCooldown: cdk.Duration.seconds(60)
           });
 
         // Add public ALB loadbalancer targetting service
@@ -74,7 +74,7 @@ export class AppStack extends cdk.Stack {
 
         listener.addTargets('DefaultTarget', {
             port: 80,
-            protocol: elbv2.ApplicationProtocol.Http,
+            protocol: elbv2.ApplicationProtocol.HTTP,
             targets: [service]
         });
 

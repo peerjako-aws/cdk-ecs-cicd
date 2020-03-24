@@ -1,6 +1,6 @@
-import cdk = require('@aws-cdk/cdk');
-import ec2 = require('@aws-cdk/aws-ec2');
-import ecs = require('@aws-cdk/aws-ecs');
+import * as cdk from '@aws-cdk/core';
+import * as ec2 from '@aws-cdk/aws-ec2';
+import * as ecs from '@aws-cdk/aws-ecs';
 
 export interface ClusterStackProps extends cdk.StackProps {
     cidr: string;
@@ -14,8 +14,8 @@ export class ClusterStack extends cdk.Stack {
     constructor(scope: cdk.Construct, id: string, props: ClusterStackProps) {
         super(scope, id, props);
 
-        this.vpc = new ec2.Vpc(this, 'Vpc', {
-            maxAZs: props.maxAZs,
+        this.vpc = new ec2.Vpc(this, 'Vpc', { 
+            maxAzs: props.maxAZs,
             cidr: props.cidr
         })
 

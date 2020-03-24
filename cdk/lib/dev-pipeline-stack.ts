@@ -1,11 +1,12 @@
-import cdk = require('@aws-cdk/cdk');
-import iam = require('@aws-cdk/aws-iam');
-import ecr = require('@aws-cdk/aws-ecr');
-import codebuild = require('@aws-cdk/aws-codebuild');
-import codepipeline = require('@aws-cdk/aws-codepipeline');
-import codepipeline_actions = require('@aws-cdk/aws-codepipeline-actions');
+import * as cdk from '@aws-cdk/core';
+import * as iam from '@aws-cdk/aws-iam';
+import * as ecr from '@aws-cdk/aws-ecr';
+import * as codebuild from '@aws-cdk/aws-codebuild';
+import * as codepipeline from '@aws-cdk/aws-codepipeline';
+import * as codepipeline_actions from '@aws-cdk/aws-codepipeline-actions';
+
+
 import { PipelineContainerImage } from "./pipeline-container-image";
-import { PolicyStatementEffect } from '@aws-cdk/aws-iam';
 import { githubOwner, repoName, awsSecretsGitHubTokenName, gitDevBranch, ssmImageTagParamName } from '../config'
 
 export class DevPipelineStack extends cdk.Stack {
@@ -20,7 +21,7 @@ export class DevPipelineStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, {
       ...props,
-      autoDeploy: false,
+      //autoDeploy: false,
     });
 
     this.appRepository = new ecr.Repository(this, 'AppEcrRepo');
@@ -36,7 +37,7 @@ export class DevPipelineStack extends cdk.Stack {
       repo: repoName,
       oauthToken: cdk.SecretValue.secretsManager(awsSecretsGitHubTokenName),
       output: sourceOutput,
-      trigger: codepipeline_actions.GitHubTrigger.Poll,
+      trigger: codepipeline_actions.GitHubTrigger.POLL,
       branch: gitDevBranch
     });
 
@@ -45,7 +46,7 @@ export class DevPipelineStack extends cdk.Stack {
           buildImage: codebuild.LinuxBuildImage.UBUNTU_14_04_DOCKER_17_09_0,
           privileged: true,
         },
-        buildSpec: {
+        buildSpec: codebuild.BuildSpec.fromObject({          
           version: '0.2',
           phases: {
             pre_build: {
@@ -69,7 +70,7 @@ export class DevPipelineStack extends cdk.Stack {
           artifacts: {
             files: 'imageTag.json',
           },
-        },
+        }),
         environmentVariables: {
           'APP_REPOSITORY_URI': {
             value: this.appRepository.repositoryUri,
@@ -79,9 +80,11 @@ export class DevPipelineStack extends cdk.Stack {
           },
         },
       });
-      dockerBuild.addToRolePolicy(new iam.PolicyStatement(PolicyStatementEffect.Allow)
-        .addResource('arn:aws:ssm:*:*:parameter/' + ssmImageTagParamName)
-        .addAction('ssm:PutParameter')
+      dockerBuild.addToRolePolicy(new iam.PolicyStatement({
+          effect: iam.Effect.ALLOW,
+          actions: ['ssm:PutParameter'],
+          resources: ['arn:aws:ssm:*:*:parameter/' + ssmImageTagParamName]
+        })
       );
       this.appRepository.grantPullPush(dockerBuild);
       this.nginxRepository.grantPullPush(dockerBuild);
@@ -90,7 +93,7 @@ export class DevPipelineStack extends cdk.Stack {
         environment: {
           buildImage: codebuild.LinuxBuildImage.UBUNTU_14_04_NODEJS_10_14_1,
         },
-        buildSpec: {
+        buildSpec: codebuild.BuildSpec.fromObject({
           version: '0.2',
           phases: {
             install: {
@@ -110,11 +113,14 @@ export class DevPipelineStack extends cdk.Stack {
             'base-directory': 'cdk',
             files: 'DevAppStack.template.yaml',
           },
-        },
+        }),
       });
-      cdkBuild.addToRolePolicy(new iam.PolicyStatement(PolicyStatementEffect.Allow)
-        .addResource('*')
-        .addAction('ec2:DescribeAvailabilityZones')
+      cdkBuild.addToRolePolicy(new iam.PolicyStatement(
+        {
+          effect: iam.Effect.ALLOW,
+          actions: ['ec2:DescribeAvailabilityZones'],
+          resources: ['*']
+        })      
       );
 
       const dockerBuildOutput = new codepipeline.Artifact("DockerBuildOutput");
@@ -123,28 +129,28 @@ export class DevPipelineStack extends cdk.Stack {
       new codepipeline.Pipeline(this, 'Pipeline', {
         stages: [
           {
-            name: 'Source',
+            stageName: 'Source',
             actions: [sourceAction],
           },
           {
-            name: 'Build',
+            stageName: 'Build',
             actions: [
               new codepipeline_actions.CodeBuildAction({
                 actionName: 'DockerBuild',
                 project: dockerBuild,
                 input: sourceOutput,
-                output: dockerBuildOutput,
+                outputs: [dockerBuildOutput],
               }),
               new codepipeline_actions.CodeBuildAction({
                 actionName: 'CdkBuild',
                 project: cdkBuild,
                 input: sourceOutput,
-                output: cdkBuildOutput,
+                outputs: [cdkBuildOutput],
               })
             ],
           },
           {
-            name: 'Deploy',
+            stageName: 'Deploy',
             actions: [
               new codepipeline_actions.CloudFormationCreateUpdateStackAction({
                 actionName: 'CFN_Deploy',

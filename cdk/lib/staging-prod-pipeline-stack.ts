@@ -1,11 +1,10 @@
-import cdk = require('@aws-cdk/cdk');
-import iam = require('@aws-cdk/aws-iam');
-import ecr = require('@aws-cdk/aws-ecr');
-import codebuild = require('@aws-cdk/aws-codebuild');
-import codepipeline = require('@aws-cdk/aws-codepipeline');
-import codepipeline_actions = require('@aws-cdk/aws-codepipeline-actions');
+import * as cdk from '@aws-cdk/core';
+import * as iam from '@aws-cdk/aws-iam';
+import * as ecr from '@aws-cdk/aws-ecr';
+import * as codebuild from '@aws-cdk/aws-codebuild';
+import * as codepipeline from '@aws-cdk/aws-codepipeline';
+import * as codepipeline_actions from '@aws-cdk/aws-codepipeline-actions';
 import { PipelineContainerImage } from "./pipeline-container-image";
-import { PolicyStatementEffect } from '@aws-cdk/aws-iam';
 
 import { githubOwner, repoName, awsSecretsGitHubTokenName, gitProdBranch, ssmImageTagParamName, stagingValidationEmail } from '../config'
 
@@ -27,7 +26,7 @@ export class StagingProdPipelineStack extends cdk.Stack {
     constructor(scope: cdk.Construct, id: string, props: StagingProdPipelineStackProps) {
         super(scope, id, {
           ...props,
-          autoDeploy: false,
+          //autoDeploy: false,
         });
 
         this.appRepository = props.appRepository;
@@ -46,7 +45,7 @@ export class StagingProdPipelineStack extends cdk.Stack {
           repo: repoName,
           oauthToken: cdk.SecretValue.secretsManager(awsSecretsGitHubTokenName),
           output: sourceOutput,
-          trigger: codepipeline_actions.GitHubTrigger.None,
+          trigger: codepipeline_actions.GitHubTrigger.NONE,
           branch: gitProdBranch
         });
 
@@ -54,7 +53,7 @@ export class StagingProdPipelineStack extends cdk.Stack {
             environment: {
               buildImage: codebuild.LinuxBuildImage.UBUNTU_14_04_NODEJS_10_14_1,
             },
-            buildSpec: {
+            buildSpec: codebuild.BuildSpec.fromObject({
               version: '0.2',
               phases: {
                 install: {
@@ -83,15 +82,21 @@ export class StagingProdPipelineStack extends cdk.Stack {
                 ],
                 
               },
-            },
+            }),
           });
-          cdkBuild.addToRolePolicy(new iam.PolicyStatement(PolicyStatementEffect.Allow)
-            .addResource('arn:aws:ssm:*:*:parameter/' + ssmImageTagParamName)
-            .addAction('ssm:GetParameter')
+          cdkBuild.addToRolePolicy(new iam.PolicyStatement(
+            {
+              effect: iam.Effect.ALLOW,
+              actions: ['ssm:GetParameter'],
+              resources: ['arn:aws:ssm:*:*:parameter/' + ssmImageTagParamName]
+            })
           );
-          cdkBuild.addToRolePolicy(new iam.PolicyStatement(PolicyStatementEffect.Allow)
-            .addResource('*')
-            .addAction('ec2:DescribeAvailabilityZones')
+          cdkBuild.addToRolePolicy(new iam.PolicyStatement(
+            {
+              effect: iam.Effect.ALLOW,
+              actions: ['ec2:DescribeAvailabilityZones'],
+              resources: ['*']
+            })
           );
           
           const cdkBuildOutput = new codepipeline.Artifact();
@@ -99,22 +104,22 @@ export class StagingProdPipelineStack extends cdk.Stack {
           new codepipeline.Pipeline(this, 'Pipeline', {
             stages: [
               {
-                name: 'Source',
+                stageName: 'Source',
                 actions: [sourceAction],
               },
               {
-                name: 'Build',
+                stageName: 'Build',
                 actions: [
                   new codepipeline_actions.CodeBuildAction({
                     actionName: 'CdkBuild',
                     project: cdkBuild,
                     input: sourceOutput,
-                    output: cdkBuildOutput,
+                    outputs: [cdkBuildOutput],
                   })
                 ],
               },
               {
-                name: 'DeployStaging',
+                stageName: 'DeployStaging',
                 actions: [
                   new codepipeline_actions.CloudFormationCreateUpdateStackAction({
                     actionName: 'CFN_Deploy',
@@ -138,7 +143,7 @@ export class StagingProdPipelineStack extends cdk.Stack {
                 ],
               },
               {
-                name: 'DeployProd',
+                stageName: 'DeployProd',
                 actions: [
                   new codepipeline_actions.CloudFormationCreateUpdateStackAction({
                     actionName: 'CFN_Deploy',
