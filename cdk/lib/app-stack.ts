@@ -64,13 +64,17 @@ export class AppStack extends cdk.Stack {
 
         scaling.scaleOnSchedule('ScheduleScalingUp', {
             minCapacity: 2,
-            schedule: "cron(0 0 0/2 ? * *)"
-        });
-        
+            schedule: {
+                expressionString: "cron(0 0 0/2 ? * *)"
+            }
+        })
+
         scaling.scaleOnSchedule('ScheduleScalingDown', {
-             minCapacity: 1,
-             schedule: "cron(0 0 1/2 ? * *)"
-        });
+            minCapacity: 1,
+            schedule: {
+                expressionString: "cron(0 0 1/2 ? * *)"
+            }
+        })
 
         // Add public ALB loadbalancer targetting service
         const lb = new elbv2.ApplicationLoadBalancer(this, 'LB', {
