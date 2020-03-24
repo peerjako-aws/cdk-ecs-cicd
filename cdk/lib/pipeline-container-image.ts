@@ -1,30 +1,34 @@
-import cdk = require('@aws-cdk/cdk');
-import ecs = require('@aws-cdk/aws-ecs');
-import ecr = require('@aws-cdk/aws-ecr');
+import { IRepository } from '@aws-cdk/aws-ecr';
+import { CfnTaskDefinition, ContainerDefinition, ContainerImage, ContainerImageConfig } from '@aws-cdk/aws-ecs';
+import { CfnParameter, Lazy } from '@aws-cdk/core';
 
-export class PipelineContainerImage extends ecs.ContainerImage {
+export class PipelineContainerImage extends ContainerImage {
   public readonly imageName: string;
-  private readonly repository: ecr.IRepository;
-  private parameter?: cdk.CfnParameter;
+  private readonly repository: IRepository;
+  private parameter?: CfnParameter;
 
-  constructor(repository: ecr.IRepository) {
+  constructor(repository: IRepository) {
     super();
-    this.imageName = repository.repositoryUriForTag(new cdk.Token(() => this.parameter!.stringValue).toString());
+    this.imageName = repository.repositoryUriForTag(Lazy.stringValue({ produce: () => this.parameter!.valueAsString }));
     this.repository = repository;
   }
 
-  public bind(containerDefinition: ecs.ContainerDefinition): void {
+  public bind(containerDefinition: ContainerDefinition): ContainerImageConfig {
     this.repository.grantPull(containerDefinition.taskDefinition.obtainExecutionRole());
-    this.parameter = new cdk.CfnParameter(containerDefinition, 'PipelineParam', {
+    this.parameter = new CfnParameter(containerDefinition, 'PipelineParam', {
       type: 'String',
     });
+    return {
+      imageName: this.imageName,
+    };
   }
 
   public get paramName(): string {
-    return new cdk.Token(() => this.parameter!.logicalId).toString();
+    // return cdk.Token.asString(this.parameter!.logicalId).toString();
+    return Lazy.stringValue({ produce: () => this.parameter!.logicalId });
   }
 
-  public toRepositoryCredentialsJson(): ecs.CfnTaskDefinition.RepositoryCredentialsProperty | undefined {
+  public toRepositoryCredentialsJson(): CfnTaskDefinition.RepositoryCredentialsProperty | undefined {
     return undefined;
   }
 }

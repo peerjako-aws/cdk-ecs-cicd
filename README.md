@@ -59,10 +59,10 @@ We will be using the CDK framework when developing our infrastructure as code an
 
 https://cdkworkshop.com/
 
-The examples in this repo are based on CDK version 0.32.0 so you either need to install that version or go in and change the CDK packages in the packages.json files to use the versions matching your CDK version.
+The examples in this repo are based on CDK version 1.30.0 so you either need to install that version or go in and change the CDK packages in the packages.json files to use the versions matching your CDK version.
 
 ```bash
-npm install -g aws-cdk@0.32.0
+npm install -g aws-cdk@1.30.0
 ```
 
 ### Github Repo
