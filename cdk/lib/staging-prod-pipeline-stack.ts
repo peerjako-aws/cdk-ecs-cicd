@@ -76,8 +76,8 @@ export class StagingProdPipelineStack extends cdk.Stack {
               artifacts: {
                 'base-directory': 'cdk',
                 files: [
-                    'StagingAppStack.template.yaml',
-                    'ProdAppStack.template.yaml',
+                    'StagingAppStack.template.json',
+                    'ProdAppStack.template.json',
                     'imageTag.json'
                 ],
                 
@@ -124,7 +124,7 @@ export class StagingProdPipelineStack extends cdk.Stack {
                   new codepipeline_actions.CloudFormationCreateUpdateStackAction({
                     actionName: 'CFN_Deploy',
                     stackName: 'StagingAppStack',
-                    templatePath: cdkBuildOutput.atPath('StagingAppStack.template.yaml'),
+                    templatePath: cdkBuildOutput.atPath('StagingAppStack.template.json'),
                     adminPermissions: true,
                     runOrder: 1,
                     parameterOverrides: {
@@ -148,7 +148,7 @@ export class StagingProdPipelineStack extends cdk.Stack {
                   new codepipeline_actions.CloudFormationCreateUpdateStackAction({
                     actionName: 'CFN_Deploy',
                     stackName: 'ProdAppStack',
-                    templatePath: cdkBuildOutput.atPath('ProdAppStack.template.yaml'),
+                    templatePath: cdkBuildOutput.atPath('ProdAppStack.template.json'),
                     adminPermissions: true,
                     parameterOverrides: {
                         [this.appBuiltImageProd.paramName]: cdkBuildOutput.getParam('imageTag.json', 'imageTag'),
