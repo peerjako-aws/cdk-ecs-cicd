@@ -62,7 +62,7 @@ https://cdkworkshop.com/
 The examples in this repo are based on CDK version 1.30.0 so you either need to install that version or go in and change the CDK packages in the packages.json files to use the versions matching your CDK version.
 
 ```bash
-npm install -g aws-cdk@1.30.0
+npm install -g aws-cdk@1.32.1
 ```
 
 ### Github Repo
