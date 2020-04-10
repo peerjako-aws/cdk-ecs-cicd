@@ -10,7 +10,7 @@ Flask==0.12.3
 itsdangerous==0.24
 Jinja2==2.10.1
 jmespath==0.9.3
-MarkupSafe==1.0
+MarkupSafe==1.1.1
 pathspec==0.5.5
 python-dateutil==2.6.1
 PyYAML==4.2b4
