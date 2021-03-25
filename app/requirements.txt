@@ -13,7 +13,7 @@ jmespath==0.9.3
 MarkupSafe==1.1.1
 pathspec==0.5.5
 python-dateutil==2.6.1
-PyYAML==4.2b4
+PyYAML==5.4
 requests==2.22.0
 semantic-version==2.5.0
 six==1.11.0
